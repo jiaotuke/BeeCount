@@ -37,7 +37,7 @@ class PaymentAccessibilityService : AccessibilityService() {
         val text = lines.joinToString("\n").take(12000)
         val parsed = PaymentTextParser.parse(pkg, text, true)
         if (parsed == null) { receiptSignature = null; return }
-        val signature = "$pkg:${parsed.amount}:${parsed.merchant}:${parsed.orderId}"
+        val signature = "$pkg:${parsed.kind}:${parsed.amount}:${parsed.merchant}:${parsed.orderId}"
         if (receiptSignature == signature) return
         receiptSignature = signature
         runCatching { PaymentCaptureStore.capture(this, pkg, text, "page", UUID.randomUUID().toString(), System.currentTimeMillis()) }

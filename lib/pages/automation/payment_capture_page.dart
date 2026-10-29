@@ -66,8 +66,8 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
             builder: (ctx) => AlertDialog(
                   title: const Text('允许识别支付信息？'),
                   content: Text(source == 'notification'
-                      ? '系统通知访问权限可能接触其他通知。本功能仅处理微信、支付宝的支付文字，在本机生成待确认账目，不上传通知；聊天、验证码不用于记账。开启后还需在系统设置中授权。'
-                      : '无障碍权限用于读取微信、支付宝支付成功页面的文字。不点击、不付款、不截取其他应用页面，信息仅保存在本机。可随时关闭。开启后还需在系统设置中授权。'),
+                      ? '系统通知访问权限可能接触其他通知。本功能仅处理微信、支付宝的付款与收款文字，在本机生成待确认账目，不上传通知；聊天、验证码不用于记账。开启后还需在系统设置中授权。'
+                      : '无障碍权限用于读取微信、支付宝付款成功和收款到账页面的文字。不点击、不付款、不截取其他应用页面，信息仅保存在本机。可随时关闭。开启后还需在系统设置中授权。'),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
@@ -101,14 +101,15 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
     // Saving uses the existing category/account editor, rather than guessing an account.
     await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => TransactionEditorPage(
-              initialKind: 'expense',
+              initialKind: item['kind'] == 'income' ? 'income' : 'expense',
               quickAdd: true,
               creationSyncId: item['id'] as String,
               initialAmount: double.tryParse(item['amount']?.toString() ?? ''),
               initialDate:
                   DateTime.fromMillisecondsSinceEpoch(item['time'] as int),
               initialCurrencyCode: 'CNY',
-              initialNote: item['merchant'] as String? ?? '支付识别（请核对商户）',
+              initialNote: item['merchant'] as String? ??
+                  (item['kind'] == 'income' ? '收款识别（请核对付款方）' : '支付识别（请核对商户）'),
               onTransactionCreated: (_) async {
                 try {
                   await _channel
@@ -158,9 +159,9 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
         ]),
         body: ListView(padding: const EdgeInsets.all(16), children: [
           const Text(
-              '微信 / 支付宝付款后自动捕获，确认分类、账户和金额后入账。无需截图，不依赖 AI。当前仅处理人民币消费；转账、退款等暂不处理。'),
+              '微信 / 支付宝付款、收款到账后自动捕获，确认分类、账户和金额后记为支出或收入。无需截图，不依赖 AI。仅处理人民币；退款、充值、提现和未确认的转账暂不处理。'),
           SwitchListTile(
-              title: const Text('监听支付通知'),
+              title: const Text('监听付款与收款通知'),
               subtitle: Text(_status['notificationGranted'] == true
                   ? '系统权限已授权'
                   : '需要通知访问权限'),
@@ -171,7 +172,7 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
                   _channel.invokeMethod<void>('notificationSettings'),
               child: const Text('打开通知访问设置')),
           SwitchListTile(
-              title: const Text('识别支付成功页面'),
+              title: const Text('识别付款成功与收款到账页面'),
               subtitle:
                   Text(_status['pageGranted'] == true ? '系统权限已授权' : '需要无障碍权限'),
               value: _status['page'] == true,
@@ -193,7 +194,7 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
           if (_items.isEmpty)
             const Padding(
                 padding: EdgeInsets.all(16),
-                child: Text('暂未捕获付款。授权后完成一笔付款，再回到这里刷新。')),
+                child: Text('暂未捕获收支。授权后完成一笔付款或收款，再回到这里刷新。')),
           for (final item in _items)
             Card(
                 child: Padding(
@@ -201,6 +202,9 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text(item['kind'] == 'income'
+                            ? '待确认收入 · 收款'
+                            : '待确认支出 · 付款'),
                         Text(
                             item['amount'] == null
                                 ? '金额待核对'

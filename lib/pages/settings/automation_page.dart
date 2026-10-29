@@ -37,7 +37,7 @@ class AutomationPage extends ConsumerWidget {
                         AppListTile(
                           leading: Icons.payments_outlined,
                           title: '支付自动识别（试验版）',
-                          subtitle: '微信 / 支付宝通知与支付页面，自动捕获后确认入账',
+                          subtitle: '微信 / 支付宝付款、收款到账，自动捕获后确认收入或支出',
                           onTap: () => Navigator.of(context).push(MaterialPageRoute(
                             builder: (_) => const PaymentCapturePage(),
                           )),

@@ -106,7 +106,9 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
     super.initState();
     _tab = TabController(length: widget.creationSyncId == null ? 3 : 1, vsync: this);
     // 设置初始tab: 0=支出, 1=收入, 2=转账
-    if (widget.initialKind == 'income') {
+    if (widget.creationSyncId != null) {
+      _tab.index = 0;
+    } else if (widget.initialKind == 'income') {
       _tab.index = 1;
     } else if (widget.initialKind == 'transfer') {
       _tab.index = 2;
@@ -130,7 +132,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
         }
         if (c != null && mounted) {
           // 切换到对应的 tab
-          final idx = c.kind == 'income' ? 1 : 0;
+          final idx = widget.creationSyncId != null ? 0 : (c.kind == 'income' ? 1 : 0);
           if (_tab.index != idx) _tab.animateTo(idx);
           _autoOpened = true;
           // 直接调用 onPick 逻辑，打开金额输入
@@ -171,7 +173,9 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
                               insets: const EdgeInsets.symmetric(horizontal: 0),
                             ),
                             tabs: [
-                              Tab(text: AppLocalizations.of(context).categoryExpense),
+                              Tab(text: widget.creationSyncId != null && widget.initialKind == 'income'
+                                  ? AppLocalizations.of(context).categoryIncome
+                                  : AppLocalizations.of(context).categoryExpense),
                               if (widget.creationSyncId == null) ...[
                               Tab(text: AppLocalizations.of(context).categoryIncome),
                               Tab(text: AppLocalizations.of(context).transferTitle),
@@ -196,8 +200,9 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
               controller: _tab,
               children: [
                 CategorySelector(
-                  kind: 'expense',
-                  onCategorySelected: (c) => _onCategorySelected(context, c, 'expense'),
+                  kind: widget.creationSyncId != null ? widget.initialKind : 'expense',
+                  onCategorySelected: (c) => _onCategorySelected(context, c,
+                      widget.creationSyncId != null ? widget.initialKind : 'expense'),
                   initialCategoryId: widget.initialCategoryId,
                 ),
                 if (widget.creationSyncId == null) ...[

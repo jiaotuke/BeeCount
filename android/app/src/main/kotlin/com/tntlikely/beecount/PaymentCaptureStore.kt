@@ -21,17 +21,19 @@ object PaymentCaptureStore {
         val p = prefs(c)
         val items = JSONArray(p.getString("items", "[]"))
         val seen = JSONObject(p.getString("seen", "{}") ?: "{}")
-        val identity = hash(if (parsed.orderId != null) "$pkg:order:${parsed.orderId}" else "$pkg:$source:$eventId")
-        if (seen.has(identity)) return
+        val legacyIdentity = hash(if (parsed.orderId != null) "$pkg:order:${parsed.orderId}" else "$pkg:$source:$eventId")
+        val identity = hash(if (parsed.orderId != null) "$pkg:${parsed.kind}:order:${parsed.orderId}" else "$pkg:${parsed.kind}:$source:$eventId")
+        if (seen.has(identity) || (parsed.kind == "expense" && seen.has(legacyIdentity))) return
         // Never silently discard old pending payments on capacity overflow.
         if (items.length() >= 500) { p.edit().putBoolean("full", true).apply(); return }
         var duplicate = false
         for (i in 0 until items.length()) {
             val item = items.getJSONObject(i)
-            if (item.optString("package") == pkg && parsed.amount != null && item.optString("amount") == parsed.amount &&
+            if (item.optString("package") == pkg && item.optString("kind", "expense") == parsed.kind && parsed.amount != null && item.optString("amount") == parsed.amount &&
                 kotlin.math.abs(time - item.getLong("time")) < 120000) duplicate = true
         }
         val item = JSONObject().put("id", UUID.randomUUID().toString()).put("package", pkg)
+            .put("kind", parsed.kind)
             .put("source", source).put("time", time).put("text", text.take(12000))
             .put("amount", parsed.amount ?: JSONObject.NULL).put("merchant", parsed.merchant ?: JSONObject.NULL)
             .put("possibleDuplicate", duplicate)
