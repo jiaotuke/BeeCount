@@ -1,6 +1,12 @@
 # 第三方组件声明 / Third-Party Notices
 
-本仓库源码**不包含（vendor）任何第三方库的源代码**。所有第三方依赖由 `pubspec.yaml` / `pubspec.lock` 声明，在构建时经 pub 从官方源获取，各自按其原始开源协议授权，与本项目的 [LICENSE](LICENSE)（双许可）相互独立。使用、分发或基于本项目二次开发时，请一并遵守下列组件各自的协议。
+本仓库源码**不包含（vendor）任何第三方库的源代码**。Flutter 依赖由 `pubspec.yaml` / `pubspec.lock` 声明，新增安卓依赖由 `android/app/build.gradle` 声明，在构建时经 pub 或 Gradle 获取，分别适用各自的许可或使用条款，与本项目的 [LICENSE](LICENSE)（双许可）相互独立。
+
+## 本地截图识别新增组件 / Added screenshot OCR component
+
+- Google ML Kit Chinese Text Recognition：`com.google.mlkit:text-recognition-chinese:16.0.1`，中文模型随安卓安装包提供。适用 [ML Kit 条款及隐私说明](https://developers.google.com/ml-kit/terms)，并非将 SDK 或模型改为本项目许可。
+- 图像和识别输出在设备上处理，不发送给 Google；SDK 可能联系 Google 获取兼容信息或发送性能、使用统计。截图兜底默认关闭，开启前显示用途及统计说明。
+- Bundled Chinese OCR is governed by the linked ML Kit terms. Images and recognized text remain on-device; SDK performance/utilization metrics and compatibility traffic may still be transmitted. The original Flutter dependency list below is retained.
 
 `packages/` 目录下的 `flutter_ai_kit*` 与 `flutter_cloud_sync*` 系列为本项目自研组件，属许可软件本体、受项目 LICENSE 约束，**不属于第三方组件**。
 
