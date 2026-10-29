@@ -1,446 +1,81 @@
-# BeeCount &nbsp; [中文](README.md)
+# BeeCount · Android Payment Capture
 
-<div align="center">
+[中文](README.md)
 
-![GitHub stars](https://img.shields.io/github/stars/TNT-Likely/BeeCount?style=social)
-![License](https://img.shields.io/badge/license-Business%20Source%20License-orange.svg)
-![Release](https://img.shields.io/github/v/release/TNT-Likely/BeeCount?label=latest&color=green)
-![Downloads](https://img.shields.io/github/downloads/TNT-Likely/BeeCount/total?color=blue)
-![Last commit](https://img.shields.io/github/last-commit/TNT-Likely/BeeCount)
-![Flutter](https://img.shields.io/badge/Flutter-3.27%2B-02569B?logo=flutter)
+A personal adaptation of BeeCount focused on capturing payment information without manually taking screenshots. Notifications and readable payment-success pages become local candidates that the user reviews before saving a transaction.
 
-**Your Data, Your Control — Open Source Accounting App**
+**The customized source is on the [`payment-auto-capture` branch](https://github.com/jiaotuke/BeeCount/tree/payment-auto-capture).** The `main` branch serves as the project overview; switch to the feature branch to inspect or build this version.
 
-Sync via BeeCount Cloud (self-hosted) / iCloud / Supabase / WebDAV / S3
+Only source code is published here. No APK or app-store distribution is provided.
 
-<br/>
+## What this version adds
 
-<a href="https://apps.apple.com/app/id6754611670">
-  <img src="https://img.shields.io/badge/App%20Store-000000?style=for-the-badge&logo=app-store&logoColor=white" alt="Download on App Store" height="64"/>
-</a>
-<a href="https://play.google.com/store/apps/details?id=com.tntlikely.beecount">
-  <img src="https://img.shields.io/badge/Google%20Play-414141?style=for-the-badge&logo=google-play&logoColor=white" alt="Get it on Google Play" height="64"/>
-</a>
-<a href="https://github.com/TNT-Likely/BeeCount-Cloud/blob/main/README.en.md">
-  <img src="https://img.shields.io/badge/Web%20(Self--Hosted)-4A90E2?style=for-the-badge&logo=docker&logoColor=white" alt="Self-host Web" height="64"/>
-</a>
+| Addition | Implementation |
+| --- | --- |
+| Payment notification listener | Reads authorized payment notification text from WeChat and Alipay to create candidate expenses. |
+| Payment-success page reader | Uses Android accessibility to read visible text on supported success pages. It does not require a manual screenshot, click buttons, or initiate payments. |
+| Local review inbox | Native services persist candidates with their source, time, original text, amount, and merchant. |
+| Ambiguous amount handling | Missing or multiple amounts remain unresolved until the user checks the actual paid amount. |
+| Duplicate handling | Deduplicates matching order identifiers or notification events and flags same-app, same-amount pending records within a short time window. |
+| Confirm before saving | Reuses the transaction editor for amount, category, and account review. Saving removes the candidate; canceling retains it. |
+| Save recovery | Associates a stable candidate identifier with the saved transaction to reduce duplicate saves after an interrupted acknowledgement. |
+| Separate controls and permissions | Both capture modes are off by default, with explanations, Android settings links, and permission status. |
+| Validation tools | Adds payment parser tests, review-page tests, native compilation checks, and APK inspection scripts. |
 
-<br/>
-<br/>
+The existing ledger, account, category, reporting, and import/export structures are inherited from upstream.
 
-[🌐 Website](https://count.beejz.com/en/) · [📖 Docs](https://count.beejz.com/en/docs/intro) · [💝 Donate](#-donate) · [🤝 Business](mailto:sunxiaoyes@outlook.com?subject=BeeCount%20Business%20Inquiry) · [💬 Telegram](https://t.me/beecount) · [📦 APK](https://github.com/TNT-Likely/BeeCount/releases/latest) · [🚀 TestFlight](https://testflight.apple.com/join/Eaw2rWxa)
+## How to use
 
-</div>
+1. Build and install the personal test version from the feature branch, then create a local ledger.
+2. Open **Mine → Automation → Payment capture (experimental)**. The new settings page currently uses Chinese labels.
+3. Enable the desired capture modes and grant notification access and/or accessibility permission in Android settings.
+4. After paying, return to the capture page and refresh the pending list.
+5. Check the original text, amount, category, and account before saving. Ignore unwanted or duplicate candidates.
 
----
+Disable either in-app switch to stop its processing, or revoke the corresponding Android permission.
 
-> 🤖 **New: [MCP](https://count.beejz.com/en/docs/mcp) support** — pair with [BeeCount Cloud](https://github.com/TNT-Likely/BeeCount-Cloud) to drive your ledger from any MCP client.
+## Limitations
 
----
+- This version provides **automatic capture followed by user confirmation**, not unattended transaction posting.
+- Initial parsing targets CNY expenses from WeChat and Alipay. Transfers, refunds, top-ups, and repayments are skipped.
+- Missing or hidden notifications, inaccessible page text, and Android background restrictions may cause missed captures.
+- Without an order identifier, cross-source records cannot always be matched reliably. Equal amounts may represent separate purchases.
+- The pending inbox holds up to 500 records. Capture pauses at capacity; reconcile payments made during that interval against the original payment history.
+- Background behavior depends on the system keeping the native services available and still requires device testing.
 
-## ❤️ Sponsor
+## Data handling
 
-<table>
-  <tr>
-    <td width="240" align="center">
-      <a href="https://www.aiyoyoo.com/register?aff=QEE6VZQ5X6BW"><img src="docs/sponsor/crazytoken/banner2-en.png" width="220" alt="CrazyToken"/></a>
-    </td>
-    <td>
-      <a href="https://www.aiyoyoo.com/register?aff=QEE6VZQ5X6BW"><b>CrazyToken</b></a> provides APIs for Claude, GPT, Gemini, Kimi, GLM, DeepSeek, Qwen, Grok, and other leading models to power conversational bookkeeping, receipt image recognition, and income &amp; expense organization.<br/>
-      💰 <b>As low as 0.05×</b>: save up to 99% with transparent token-level billing.<br/>
-      ✨ <b>Official native access</b>: no quality loss, no model substitution, no context compression—preserving the native model experience.<br/>
-      ⚡ <b>Fast &amp; stable, no concurrency caps</b>: smoother bookkeeping conversations and receipt recognition.<br/>
-      🎁 <b>$20 signup gift for new users</b>: register via the <a href="https://www.aiyoyoo.com/register?aff=QEE6VZQ5X6BW">exclusive link</a> to receive trial credits, plus top-up bonuses and <b>1-on-1 remote setup assistance</b> to help connect your model API.
-    </td>
-  </tr>
-</table>
+The added capture flow uses local text rules and does not depend on AI or upload notification/page text. Candidates are stored in application-private SharedPreferences, not an additional encrypted vault.
 
-> 🤝 Want your project here? [Business inquiry](mailto:sunxiaoyes@outlook.com?subject=BeeCount%20Business%20Inquiry)
+Confirmed transactions follow the original application's storage and synchronization behavior, according to the user's ledger and cloud settings.
 
----
+## Build
 
-## 💡 Why BeeCount
-
-A lightweight, open-source, privacy-first **personal finance** and **expense tracking** app.
-
-| Traditional apps | BeeCount |
-|---|---|
-| ❌ Data on third-party servers, no audit | ✅ **Fully open-source**, code auditable |
-| ❌ Privacy may be analyzed and exploited | ✅ **Offline-first** + self-hosted, developer can't access your data |
-| ❌ Service shutdown = data loss | ✅ **Data sovereignty**, choose from 5 sync options |
-| ❌ Premium features behind paywalls | ✅ **Completely free** (including AI / OCR / voice input) |
-| ❌ Ads / financial product recommendations | ✅ **Zero ads / zero tracking / zero data collection** |
-
-> **Platform support**: 🤖 Android 6.0+ (GitHub APK) / Android 7.0+ (Google Play) · 🍎 iOS 15.5+ · 🌐 Web (built into BeeCount Cloud, see below)
->
-> ~~📱 HarmonyOS — [Discontinued](https://github.com/TNT-Likely/beecount-openharmony)~~
-
----
-
-## 🌟 Core Features
-
-<details>
-<summary><b>🤖 AI-Powered</b> — AI assistant / OCR / voice / auto-capture from screenshots</summary>
-
-- **AI Assistant** — Natural language conversation, intent recognition, powered by Zhipu GLM-4
-- **OCR Photo Capture** — Dual engines (local TFLite + GLM cloud), recognizes Alipay/WeChat/UnionPay screenshots
-- **Voice Input** — Hold to speak, GLM models understand colloquial expressions
-- **Auto Capture from Screenshots** — Android accessibility service / iOS Shortcuts back-tap
-
-</details>
-
-<details>
-<summary><b>📝 Bookkeeping</b> — multi-ledger / accounts / categories / budgets / recurring / tags / charts / import-export</summary>
-
-- **Multi-ledger** — Separate ledgers for life/work/investment, each with its own currency
-- **Multiple accounts** — Cash/card/credit, transfer auto-updates both balances
-- **Two-tier categories** — Parent-child hierarchy
-- **Budgets** — Total + category budgets, overspending alerts
-- **Recurring transactions** — Daily/weekly/monthly/yearly auto-records for fixed income/expenses
-- **Tags** — Multi-tag with color labels for flexible filtering
-- **Charts** — Monthly reports / category rankings / trends / annual report
-- **Import/Export** — CSV (Alipay/WeChat bills) + YAML config
-
-</details>
-
-<details>
-<summary><b>🎨 Experience</b> — dark mode / multi-language / home widgets / theming</summary>
-
-- **Dark mode** — Pure black + theme accent borders, OLED-friendly
-- **Multi-language** — official Simplified/Traditional Chinese & English, community-contributed Korean, with localized formatting
-- **Home widgets** — 8 types and 14 variants (overview / net assets / quick add / budget / recent / dashboard / Spending Rhythm / Record Bee Trail), dark-mode, multi-language & theme-color aware, [see the full lineup](#home-widgets)
-- **Theme customization** — Multiple primary colors
-
-</details>
-
----
-
-## 📸 Screenshots
-
-<div align="center">
-  <img src="demo/videos/en/01-add-transaction.gif" alt="Add transaction" width="200" />
-  <img src="demo/videos/en/02-ai-text.gif" alt="AI text bookkeeping" width="200" />
-  <img src="demo/videos/en/04-data-analysis.gif" alt="Analytics" width="200" />
-  <img src="demo/videos/en/05-copy-transaction.gif" alt="Long press to copy a transaction" width="200" />
-</div>
-
-### Home Widgets
-
-8 content types and 14 variants — check your books and add records right from the home screen:
-
-<details>
-<summary>View the widget lineup (8 types, 14 variants)</summary>
-
-<div align="center">
-  <img src="demo/widgets/widgets-showcase-en.png" alt="Home widget lineup: overview / net assets / quick add / budget / recent transactions / dashboard / Spending Rhythm / Record Bee Trail" width="820" />
-</div>
-
-</details>
-
-<details>
-<summary>More screenshots (core features / dark mode)</summary>
-
-### 9 Core Themes
-
-<div align="center">
-  <img src="preview/store-en/01-home.png" alt="Home" width="200" />
-  <img src="preview/store-en/02-open-source.png" alt="Cloud Service" width="200" />
-  <img src="preview/store-en/03-analytics.png" alt="Analytics" width="200" />
-</div>
-
-<div align="center">
-  <img src="preview/store-en/04-ai.png" alt="AI Smart Logging" width="200" />
-  <img src="preview/store-en/05-add.png" alt="Quick Entry" width="200" />
-  <img src="preview/store-en/06-ledgers.png" alt="Multi-Ledger" width="200" />
-</div>
-
-<div align="center">
-  <img src="preview/store-en/07-tags.png" alt="Color Tags" width="200" />
-  <img src="preview/store-en/08-accounts.png" alt="Net Worth" width="200" />
-  <img src="preview/store-en/09-mine.png" alt="Settings" width="200" />
-</div>
-
-### Dark Mode
-
-<div align="center">
-  <img src="preview/dark/en/01-home.png" alt="Home dark" width="200" />
-  <img src="preview/dark/en/02-chart-analysis.png" alt="Charts dark" width="200" />
-  <img src="preview/dark/en/04-profile.png" alt="Profile dark" width="200" />
-  <img src="preview/dark/en/05-ai-chat.png" alt="AI chat dark" width="200" />
-</div>
-
-</details>
-
----
-
-## ☁️ Sync Options
-
-BeeCount offers 5 sync options. Your data, your control. **See [docs/cloud-setup_EN.md](docs/cloud-setup_EN.md) for full setup guides.**
-
-| Option | Best For | Highlights |
-|---|---|---|
-| **BeeCount Cloud** | Real-time multi-device + self-hosted + multi-user co-write | One-click Docker, sub-second sync, built-in Web, multi-user, **shared ledgers** |
-| **iCloud** | iOS-only users | Zero config, native integration |
-| **Supabase** | Cross-platform without NAS | Generous free tier, easy setup |
-| **WebDAV** | NAS users | Local data, Synology/UGREEN/Nextcloud |
-| **S3 protocol** | Flexible cloud storage | Cloudflare R2/AWS S3/MinIO, large free tier |
-
-> 🔐 **Why self-host?** Privacy first, cost control, data security, fully open-source. All sync code is auditable.
-
----
-
-## 🆕 BeeCount Cloud (Self-hosted)
-
-> **Sub-second multi-device sync + Web admin + multi-user isolation + AES-256 encrypted backup** — Recommended for users with NAS / VPS / Docker.
-
-### Highlights
-
-- 📱 **Real-time multi-device** — Phone A makes a change, Phone B and Web see it within seconds (WebSocket)
-- 🌐 **Built-in Web admin** — One Docker image = server + web; open server URL to use
-- 👥 **Multi-user isolation** — One server, many user accounts, each only sees their own data
-- 🤝 **Shared ledgers** — Owner generates an invite code; family / team join the same book. Owner / Editor roles, realtime sync, every transaction tagged with creator + last editor, plus member balance stats. iOS / Android / Web all supported.
-- 🔐 **AES-256 encrypted backup** — Multi-remote fan-out (R2 / S3 / WebDAV / B2), AES zip encryption — recoverable with standard tools even without the service
-
-### Deploy + Full Documentation
-
-Full Docker Compose deployment, backup system, PWA, and ops details live in the Cloud repo:
-
-**[👉 BeeCount-Cloud repo — One-click Docker deploy + full docs](https://github.com/TNT-Likely/BeeCount-Cloud)**
-
-### Web Admin Preview
-
-<div align="center">
-  <img src="preview/web/en-01-home.png" alt="Complete Web dashboard" width="800" />
-  <br/>
-  <sub>💰 Complete dashboard: income/expense, asset breakdown, category heatmap, trends and rankings (light mode)</sub>
-</div>
-
-<details>
-<summary>More Web screenshots</summary>
-
-<div align="center">
-  <img src="preview/web/en-02-transactions.png" alt="Web transactions with complete pagination" width="800" />
-  <br/>
-  <sub>📒 Transactions: keyword / category / account / date / tag multi-filter</sub>
-</div>
-
-<br/>
-
-<div align="center">
-  <img src="preview/web/en-05-assets.png" alt="Complete Web assets page" width="800" />
-  <br/>
-  <sub>💳 Account balances, asset composition and liabilities</sub>
-</div>
-
-<div align="center">
-  <img src="preview/web/en-04-attachments.png" alt="Full receipt, related transaction and preview controls" width="800" />
-  <br/>
-  <sub>🧾 Complete receipt preview, related transactions, zoom and original file download</sub>
-</div>
-
-<div align="center">
-  <img src="preview/web/en-03-devices.png" alt="Web device and session management" width="800" />
-</div>
-
-<div align="center">
-  <img src="preview/web/en-01-home-dark.png" alt="Complete Web dashboard in dark mode" width="800" />
-</div>
-
-</details>
-
----
-
-## 🛠️ Development
-
-<details>
-<summary>Tech stack + quick start</summary>
-
-### Tech Stack
-
-- **Flutter 3.27+** · Cross-platform UI framework
-- **Riverpod** · State management
-- **Drift (SQLite)** · Local database ORM
-- **Supabase / Self-hosted BeeCount Cloud / WebDAV / S3** · Multi-option cloud sync
-
-### Quick Start
+The verified toolchain was Flutter 3.27.3, Dart 3.6.1, Java 17, Android SDK 36, and Build Tools 35.
 
 ```bash
-# Install dependencies
+git clone --branch payment-auto-capture https://github.com/jiaotuke/BeeCount.git
+cd BeeCount
 flutter pub get
-
-# Code generation
-dart run build_runner build --delete-conflicting-outputs
-
-# Run app
 flutter run --flavor dev
-
-# Build release
-flutter build apk --flavor prod --release
 ```
 
-See [docs/contributing/CONTRIBUTING.md](docs/contributing/CONTRIBUTING.md) for development conventions.
+Build a local ARM64 debug APK:
 
-</details>
+```bash
+flutter build apk --flavor dev --debug --target-platform android-arm64
+```
 
----
+On Windows, use an ASCII build path to avoid native shader compiler path issues. Configure toolchains and dependency caches in the D-drive project directory before downloading them.
 
-## 🤝 Contributing
+## Verification status
 
-<details>
-<summary>All contributions welcome</summary>
+Static analysis of the affected Dart pages, parser tests, and three review-page widget tests passed. A complete ARM64 debug APK was built and its signature, ZIP alignment, payload, and payment service declarations were checked.
 
-- 🐛 [Report a bug](https://github.com/TNT-Likely/BeeCount/issues/new)
-- 💡 [Feature request](https://github.com/TNT-Likely/BeeCount/discussions/new?category=ideas)
-- 💻 [Code](docs/contributing/CONTRIBUTING.md#code-contribution-flow) · 🌍 [Translation](docs/contributing/CONTRIBUTING.md#translation-contributions) · 📝 [Docs](docs/contributing/CONTRIBUTING.md#documentation-contributions) · 🎨 [Designer recruitment](docs/contributing/CONTRIBUTING.md#designer-recruitment)
+Device installation, startup, actual payment capture, and background survival have not been verified. See the [implementation and validation notes](https://github.com/jiaotuke/BeeCount/blob/payment-auto-capture/docs/payment-capture-prototype.md) for details.
 
-**Quick start**: Fork → create feature branch → commit → PR. See the [full contributing guide](docs/contributing/CONTRIBUTING.md) for details.
+## Attribution and license
 
-</details>
+Based on [TNT-Likely/BeeCount source](https://github.com/TNT-Likely/BeeCount), authored by **sunxiao (TNT-Likely)**. Original copyright: **Copyright (c) 2024–2026 sunxiao**.
 
----
-
-## 🎨 Skins
-
-<details>
-<summary>Contribute a skin</summary>
-
-"Theme color + skin = the header banner." Skins come in two kinds: **code skins** (`CustomPainter` drawing gradients / shapes, auto-following the theme color) and **image skins** (an SVG painted edge-to-edge with `BoxFit.cover`, optionally recolored to the theme color via `themed: true`).
-
-Easiest path: copy [`example_skin.svg`](assets/header_skins/example_skin.svg) → drop your SVG into `assets/header_skins/` → register one entry in `lib/styles/header_skins.dart` → add an i18n name and run `flutter gen-l10n`.
-
-**Full spec (SVG requirements + theme recoloring + integration steps): [assets/header_skins/README_EN.md](assets/header_skins/README_EN.md).**
-
-</details>
-
----
-
-## 💬 FAQ
-
-<details>
-<summary>Common questions</summary>
-
-**Q: Can I use it without configuring cloud services?**
-A: Absolutely! The app uses local storage by default. All features work normally. You can export CSV for backup anytime.
-
-**Q: Which sync option should I pick?**
-A:
-- iOS single device → **iCloud** (zero config)
-- Cross-platform + real-time multi-device → **BeeCount Cloud** (self-hosted, recommended)
-- Cross-platform without NAS → **Supabase / S3**
-- Have a NAS → **WebDAV**
-
-**Q: How is data security ensured?**
-A: Use your own server / Storage / Bucket. WebDAV and S3 should use HTTPS. BeeCount Cloud backups are AES-256 encrypted by default.
-
-For more details, see [docs/cloud-setup_EN.md](docs/cloud-setup_EN.md) or [Issues](https://github.com/TNT-Likely/BeeCount/issues).
-
-</details>
-
----
-
-## 💝 Donate
-
-BeeCount and BeeCount Cloud are maintained by the same developer. If these projects help you, consider buying the developer a coffee ☕ to support continued development.
-
-### How to Donate
-
-[![PayPal](https://img.shields.io/badge/PayPal-Donate-0070BA?logo=paypal&logoColor=white&style=for-the-badge)](https://paypal.me/sunxiaoyes)
-[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/sunxiao)
-
-<details><summary>Alipay / WeChat QR codes</summary>
-
-| Alipay | WeChat Pay |
-|:---:|:---:|
-| <img src="docs/donate/alipay.png" width="160" alt="Alipay"/> | <img src="docs/donate/wechat.png" width="160" alt="WeChat"/> |
-
-</details>
-
-<details>
-<summary>USDT</summary>
-
-**Binance Pay** — scan with the Binance app:
-
-<img src="docs/donate/binance.png" width="220" alt="Binance Pay QR code"/>
-
-**On-chain USDT (TRC20)** — scan with any TRON wallet:
-
-Address: `TKBV69B2AoU67p3vDhnJUbMJtZ1DxuUF5C`
-
-<img src="docs/donate/trc20.png" width="220" alt="USDT TRC20 address QR code"/>
-
-</details>
-
-### Supporters
-
-<div>
-  <table align="left"><tr><td align="center"><img src="assets/avatars/rui.svg" width="44" height="44" alt="*Rui" /><br/>¥720</td></tr></table>
-  <table align="left"><tr><td align="center"><a href="https://github.com/fishdivinity"><img src="assets/avatars/fishdivinity.png" width="44" height="44" alt="fishdivinity" /></a><br/>¥150</td></tr></table>
-  <table align="left"><tr><td align="center"><a href="https://github.com/HowcanoeWang"><img src="https://github.com/HowcanoeWang.png" width="44" height="44" alt="HowcanoeWang" /></a><br/>¥98</td></tr></table>
-  <table align="left"><tr><td align="center"><a href="https://github.com/542474846"><img src="https://github.com/542474846.png" width="44" height="44" alt="542474846" /></a><br/>¥66</td></tr></table>
-  <table align="left"><tr><td align="center"><img src="assets/avatars/wen.svg" width="44" height="44" alt="*Wen" /><br/>¥50</td></tr></table>
-  <table align="left"><tr><td align="center"><a href="https://github.com/JOHN-2025"><img src="https://github.com/JOHN-2025.png" width="44" height="44" alt="JOHN-2025" /></a><br/>¥30</td></tr></table>
-  <table align="left"><tr><td align="center"><img src="assets/avatars/shao.svg" width="44" height="44" alt="*Shao" /><br/>¥15</td></tr></table>
-  <table align="left"><tr><td align="center"><img src="assets/avatars/te.svg" width="44" height="44" alt="*Te" /><br/>¥15</td></tr></table>
-  <table align="left"><tr><td align="center"><img src="assets/avatars/qiao.svg" width="44" height="44" alt="*Qiao" /><br/>¥12</td></tr></table>
-  <table align="left"><tr><td align="center"><a href="https://github.com/birdnofoots"><img src="https://github.com/birdnofoots.png" width="44" height="44" alt="birdnofoots" /></a><br/>¥10</td></tr></table>
-  <table align="left"><tr><td align="center"><a href="https://github.com/charieswang72-pro"><img src="https://github.com/charieswang72-pro.png" width="44" height="44" alt="Charies" /></a><br/>¥10</td></tr></table>
-  <table align="left"><tr><td align="center"><img src="assets/avatars/ge.svg" width="44" height="44" alt="*Ge" /><br/>¥6</td></tr></table>
-  <table align="left"><tr><td align="center"><a href="https://github.com/zifengfanzhuo"><img src="https://github.com/zifengfanzhuo.png" width="44" height="44" alt="Zifeng" /></a><br/>¥5</td></tr></table>
-  <br clear="all"/>
-</div>
-
-> 💡 Already donated? [Submit info](https://github.com/TNT-Likely/BeeCount/issues/new?template=donation_info.yml) to appear in the supporter list.
-
----
-
-## 🤝 Business Inquiries
-
-For commercial licensing, deployment assistance, custom development, or partnerships, email us with a brief description of your needs and use case.
-
-**[📧 sunxiaoyes@outlook.com](mailto:sunxiaoyes@outlook.com?subject=BeeCount%20Business%20Inquiry)**
-
----
-
-## 📄 License
-
-This project uses the **Business Source License (BSL)**.
-
-| Use Case | License |
-|---|---|
-| ✅ **Personal / learning / open-source contribution** | Completely free |
-| ❌ **Commercial use** | Requires paid license |
-
-<details>
-<summary>What counts as commercial use</summary>
-
-- Providing this software as a commercial product or service to customers
-- Using it in a for-profit organization
-- Building commercial products on top of this software
-- Offering paid cloud services based on this software
-
-For commercial licensing pricing and process, see [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) or contact **sunxiaoyes@outlook.com**. See [LICENSE_EN](LICENSE_EN) for details.
-
-</details>
-
----
-
-## 📦 Related Repositories
-
-| Repository | Description |
-|---|---|
-| [BeeCount-Cloud](https://github.com/TNT-Likely/BeeCount-Cloud) | Self-hosted sync server + Web admin (FastAPI + React) |
-| [BeeCount-Website](https://github.com/TNT-Likely/BeeCount-Website) | Website / docs repo |
-| [beecount-openharmony](https://github.com/TNT-Likely/beecount-openharmony) | HarmonyOS version (discontinued) |
-| [honeycomb](https://github.com/TNT-Likely/honeycomb) | Claude Code plugin marketplace (skills/agents used for developing this project) |
-
----
-
-## 🙏 Acknowledgments
-
-Thanks to [Guhe Bake (Internet Pure Land)](https://www.ghxi.com/) and [Star Mochen](https://mp.weixin.qq.com/s/HieVbKzpdUvnoaCa_9xjkA) for promoting this project.
-
-Thanks to everyone who has contributed code, suggestions, or feedback to BeeCount!
-
-For questions or suggestions, please raise an [Issue](https://github.com/TNT-Likely/BeeCount/issues) or join the [Discussions](https://github.com/TNT-Likely/BeeCount/discussions).
-
-**BeeCount 🐝 — Making accounting simple and secure**
+Original author, copyright, license, and third-party notices are retained. Use, modification, and distribution remain subject to [LICENSE](LICENSE), [LICENSE_EN](LICENSE_EN), and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). This adaptation does not change the upstream license terms.
