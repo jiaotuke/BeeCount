@@ -24,6 +24,7 @@ import '../report/annual_report_page.dart';
 import '../calendar/calendar_page.dart';
 import '../../widgets/biz/ledger_picker_sheet.dart';
 import '../../widgets/biz/home_budget_summary.dart';
+import '../../widgets/biz/payment_capture_home_card.dart';
 import '../../widgets/ai/agent_entry_card.dart';
 import 'ledgers_page_new.dart';
 import '../../providers/shared_ledger_providers.dart';
@@ -688,7 +689,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           Consumer(builder: (context, ref, _) {
             ref.watch(headerStyleProvider);
-            final hide = ref.watch(hideAmountsProvider);
             return PrimaryHeader(
               title: '',
               showTitleSection: false,
@@ -824,7 +824,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                         .textTheme
                                                         .bodyMedium
                                                         ?.color
-                                                        ?.withOpacity(0.7),
+                                                        ?.withValues(alpha: 0.7),
                                                   ),
                                                   const SizedBox(width: 1),
                                                   Text(
@@ -835,7 +835,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                           .textTheme
                                                           .bodyMedium
                                                           ?.color
-                                                          ?.withOpacity(0.7),
+                                                          ?.withValues(alpha: 0.7),
                                                     ),
                                                   ),
                                                 ],
@@ -849,7 +849,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                                         .textTheme
                                                         .bodyMedium
                                                         ?.color
-                                                        ?.withOpacity(0.5),
+                                                        ?.withValues(alpha: 0.5),
                                                   ),
                                                 ],
                                               ],
@@ -940,7 +940,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                             .textTheme
                                             .bodyMedium
                                             ?.color
-                                            ?.withOpacity(0.6), // ⭐ 自适应次要文字颜色
+                                            ?.withValues(alpha: 0.6), // ⭐ 自适应次要文字颜色
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500)),
                             const SizedBox(height: 2),
@@ -982,7 +982,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                             .textTheme
                                             .bodyMedium
                                             ?.color
-                                            ?.withOpacity(0.6), // ⭐ 自适应次要颜色
+                                            ?.withValues(alpha: 0.6), // ⭐ 自适应次要颜色
                                       ),
                               ],
                             ),
@@ -1024,6 +1024,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             }
             return const SizedBox.shrink();
           }),
+          PaymentCaptureHomeCard(hideAmounts: hide),
           Expanded(
             child: StreamBuilder<
                 List<

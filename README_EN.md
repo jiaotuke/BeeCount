@@ -12,6 +12,7 @@ Only source code is published here. No APK or app-store distribution is provided
 
 | Addition | Implementation |
 | --- | --- |
+| Home review card | Shows the pending count and latest two captures below monthly totals. Tap a capture to review it directly, or open the dedicated inbox. Respects hidden amounts and refreshes on return/resume and while the home screen is active. |
 | Payment notification listener | Reads authorized WeChat and Alipay payment and receipt notifications to create candidate expenses and income. |
 | Incoming payment detection | Recognizes explicit receipt-success or credited-payment text, including transfers explicitly marked as received by you. Pending transfers, QR requests, and generic balance alerts are not inferred as income. |
 | Success-page reader | Uses Android accessibility to read visible text on supported outgoing-payment and receipt-success pages. It does not require a manual screenshot, click buttons, or initiate payments. |
@@ -33,6 +34,8 @@ The existing ledger, account, category, reporting, and import/export structures 
 3. Enable the desired capture modes and grant notification access and/or accessibility permission in Android settings. If page text is unavailable, optionally enable local screenshot OCR after reviewing its separate explanation.
 4. After paying or receiving money, return to the capture page and refresh the pending income/expense list.
 5. Check the original text, amount, category, and account before saving. Ignore unwanted or duplicate candidates.
+
+For daily use, open pending captures directly from the home review card. They remain outside the ledger totals until confirmed and saved. The dedicated inbox keeps capture settings behind a separate settings button.
 
 Disable either in-app switch to stop its processing, or revoke the corresponding Android permission.
 
@@ -75,7 +78,7 @@ On Windows, use an ASCII build path to avoid native shader compiler path issues.
 
 ## Verification status
 
-Affected-page static analysis, income/expense parser and screenshot-scope tests, and nine widget tests passed, including separate screenshot consent, default-off behavior, OS restrictions, income categories, and legacy candidates. Full Android builds also compile the ML Kit screenshot service.
+Affected-page static analysis, income/expense parser and screenshot-scope tests, and fourteen widget tests passed, including the home preview, refresh, hidden amounts, screenshot consent, income categories, and legacy candidates. Full Android builds also compile the ML Kit screenshot service.
 
 USB inspection on Honor MTN-AN80 confirmed installation, permissions, and bound services. WeChat 8.0.79 exposed only one empty node on the received-transfer page, motivating the opt-in OCR fallback. See the [implementation and validation notes](https://github.com/jiaotuke/BeeCount/blob/payment-auto-capture/docs/payment-capture-prototype.md) for the actual device results and remaining limitations.
 

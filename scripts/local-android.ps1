@@ -19,9 +19,9 @@ Push-Location $projectRoot
 try {
     switch ($Action) {
         deps { & $flutter pub get }
-        analyze { & $flutter analyze --no-pub lib/pages/automation/payment_capture_page.dart lib/pages/settings/automation_page.dart lib/pages/transaction/transaction_editor_page.dart }
+        analyze { & $flutter analyze --no-pub lib/pages/automation/payment_capture_page.dart lib/pages/automation/payment_capture_review.dart lib/widgets/biz/payment_capture_home_card.dart lib/pages/main/home_page.dart lib/pages/settings/automation_page.dart lib/pages/transaction/transaction_editor_page.dart }
         format { & (Join-Path $toolsRoot 'flutter\bin\dart.bat') format lib/pages/automation/payment_capture_page.dart }
-        test { & $flutter test --no-pub test/pages/automation/payment_capture_page_test.dart }
+        test { & $flutter test --no-pub test/pages/automation/payment_capture_page_test.dart test/pages/automation/payment_capture_home_card_test.dart }
         build { & $flutter build apk --flavor dev --debug --target-platform android-arm64 --verbose }
     }
     if ($LASTEXITCODE -ne 0) { throw "Flutter action failed: $Action (exit $LASTEXITCODE)" }

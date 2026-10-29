@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../transaction/transaction_editor_page.dart';
+import 'payment_capture_review.dart';
 
 /// Android native inbox is retained even while Flutter is not running.
 class PaymentCapturePage extends StatefulWidget {
-  const PaymentCapturePage({super.key});
+  final bool showSettings;
+  const PaymentCapturePage({super.key, this.showSettings = true});
   @override
   State<PaymentCapturePage> createState() => _PaymentCapturePageState();
 }
@@ -101,30 +102,7 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
 
   Future<void> _review(Map<String, dynamic> item) async {
     if (_busy) return;
-    // Saving uses the existing category/account editor, rather than guessing an account.
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => TransactionEditorPage(
-              initialKind: item['kind'] == 'income' ? 'income' : 'expense',
-              quickAdd: true,
-              creationSyncId: item['id'] as String,
-              initialAmount: double.tryParse(item['amount']?.toString() ?? ''),
-              initialDate:
-                  DateTime.fromMillisecondsSinceEpoch(item['time'] as int),
-              initialCurrencyCode: 'CNY',
-              initialNote: item['merchant'] as String? ??
-                  (item['kind'] == 'income' ? '收款识别（请核对付款方）' : '支付识别（请核对商户）'),
-              onTransactionCreated: (_) async {
-                try {
-                  await _channel
-                      .invokeMethod<void>('remove', {'id': item['id']});
-                } catch (_) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('账目已保存，但待确认记录未移除；请勿重复保存，请返回后忽略该记录。')));
-                  }
-                }
-              },
-            )));
+    await reviewPaymentCapture(context, item);
     await _reload();
   }
 
@@ -154,58 +132,72 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('支付自动识别（试验版）'), actions: [
-          IconButton(
-              onPressed: _reload,
-              icon: const Icon(Icons.refresh),
-              tooltip: '刷新'),
-        ]),
+        appBar: AppBar(
+            title: Text(widget.showSettings ? '支付自动识别（试验版）' : '待确认收支'),
+            actions: [
+              if (!widget.showSettings)
+                IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: '识别设置',
+                    onPressed: () async {
+                      await Navigator.of(context).push(MaterialPageRoute<void>(
+                          builder: (_) => const PaymentCapturePage()));
+                      await _reload();
+                    }),
+              IconButton(
+                  onPressed: _reload,
+                  icon: const Icon(Icons.refresh),
+                  tooltip: '刷新'),
+            ]),
         body: ListView(padding: const EdgeInsets.all(16), children: [
-          const Text(
-              '微信 / 支付宝付款、收款到账后自动捕获，确认分类、账户和金额后记为支出或收入。默认读取通知和页面文字，可另行开启本地截图识别，不调用云端 AI。仅处理人民币；退款、充值、提现和未确认的转账暂不处理。'),
-          SwitchListTile(
-              title: const Text('监听付款与收款通知'),
-              subtitle: Text(_status['notificationGranted'] == true
-                  ? '系统权限已授权'
-                  : '需要通知访问权限'),
-              value: _status['notification'] == true,
-              onChanged: _busy ? null : (v) => _enable('notification', v)),
-          TextButton(
-              onPressed: () =>
-                  _channel.invokeMethod<void>('notificationSettings'),
-              child: const Text('打开通知访问设置')),
-          SwitchListTile(
-              title: const Text('识别付款成功与收款到账页面'),
-              subtitle:
-                  Text(_status['pageGranted'] == true ? '系统权限已授权' : '需要无障碍权限'),
-              value: _status['page'] == true,
-              onChanged: _busy ? null : (v) => _enable('page', v)),
-          TextButton(
-              onPressed: () =>
-                  _channel.invokeMethod<void>('accessibilitySettings'),
-              child: const Text('打开无障碍设置')),
-          SwitchListTile(
-              title: const Text('本地截图文字识别兜底'),
-              subtitle: Text(_status['ocrSupported'] != true
-                  ? '需要 Android 11 或更新版本'
-                  : _status['page'] != true
-                      ? '请先开启上面的页面识别'
-                      : '仅适配微信转账收款详情；不上传、不保存截图'),
-              value: _status['ocr'] == true,
-              onChanged: _busy ||
-                      _status['ocrSupported'] != true ||
-                      _status['page'] != true
-                  ? null
-                  : (v) => _enable('ocr', v)),
-          if (_status['pageDiagnostic']?.toString().contains('chars=0') == true)
-            const Text('页面没有提供可读取文字；可按需开启本地截图识别，或使用通知识别。'),
-          if (_status['pageDiagnostic']
-                  ?.toString()
-                  .startsWith('ocr_screenshot_unavailable:') ==
-              true)
-            const Text('系统暂不允许截取此页面，请使用通知识别或手动录入。'),
-          const Text(
-              '关闭上面的开关即停止处理；也可在系统设置撤销权限。没有支付通知、页面文字不可读或系统停止服务时可能漏记。请定期用原始账单核对。'),
+          if (widget.showSettings) ...[
+            const Text(
+                '微信 / 支付宝付款、收款到账后自动捕获，确认分类、账户和金额后记为支出或收入。默认读取通知和页面文字，可另行开启本地截图识别，不调用云端 AI。仅处理人民币；退款、充值、提现和未确认的转账暂不处理。'),
+            SwitchListTile(
+                title: const Text('监听付款与收款通知'),
+                subtitle: Text(_status['notificationGranted'] == true
+                    ? '系统权限已授权'
+                    : '需要通知访问权限'),
+                value: _status['notification'] == true,
+                onChanged: _busy ? null : (v) => _enable('notification', v)),
+            TextButton(
+                onPressed: () =>
+                    _channel.invokeMethod<void>('notificationSettings'),
+                child: const Text('打开通知访问设置')),
+            SwitchListTile(
+                title: const Text('识别付款成功与收款到账页面'),
+                subtitle: Text(
+                    _status['pageGranted'] == true ? '系统权限已授权' : '需要无障碍权限'),
+                value: _status['page'] == true,
+                onChanged: _busy ? null : (v) => _enable('page', v)),
+            TextButton(
+                onPressed: () =>
+                    _channel.invokeMethod<void>('accessibilitySettings'),
+                child: const Text('打开无障碍设置')),
+            SwitchListTile(
+                title: const Text('本地截图文字识别兜底'),
+                subtitle: Text(_status['ocrSupported'] != true
+                    ? '需要 Android 11 或更新版本'
+                    : _status['page'] != true
+                        ? '请先开启上面的页面识别'
+                        : '仅适配微信转账收款详情；不上传、不保存截图'),
+                value: _status['ocr'] == true,
+                onChanged: _busy ||
+                        _status['ocrSupported'] != true ||
+                        _status['page'] != true
+                    ? null
+                    : (v) => _enable('ocr', v)),
+            if (_status['pageDiagnostic']?.toString().contains('chars=0') ==
+                true)
+              const Text('页面没有提供可读取文字；可按需开启本地截图识别，或使用通知识别。'),
+            if (_status['pageDiagnostic']
+                    ?.toString()
+                    .startsWith('ocr_screenshot_unavailable:') ==
+                true)
+              const Text('系统暂不允许截取此页面，请使用通知识别或手动录入。'),
+            const Text(
+                '关闭上面的开关即停止处理；也可在系统设置撤销权限。没有支付通知、页面文字不可读或系统停止服务时可能漏记。请定期用原始账单核对。'),
+          ],
           if (_error != null)
             Text(_error!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error)),
