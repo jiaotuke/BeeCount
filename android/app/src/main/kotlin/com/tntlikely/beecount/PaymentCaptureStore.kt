@@ -9,15 +9,17 @@ import java.util.UUID
 /** Native persistent inbox: survives Flutter being stopped, no network or AI upload. */
 object PaymentCaptureStore {
     private fun prefs(c: Context) = c.getSharedPreferences("payment_capture", Context.MODE_PRIVATE)
-    fun enabled(c: Context, source: String) = prefs(c).getBoolean(source, false)
+    fun enabled(c: Context, source: String): Boolean = if (source == "page_ocr")
+        prefs(c).getBoolean("page", false) && prefs(c).getBoolean("ocr", false)
+        else prefs(c).getBoolean(source, false)
     @Synchronized fun setEnabled(c: Context, source: String, value: Boolean) {
-        require(source == "notification" || source == "page")
+        require(source == "notification" || source == "page" || source == "ocr")
         check(prefs(c).edit().putBoolean(source, value).commit())
     }
     private fun hash(s: String) = MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString("") { "%02x".format(it) }
     @Synchronized fun capture(c: Context, pkg: String, text: String, source: String, eventId: String, time: Long) {
         if (!enabled(c, source)) return
-        val parsed = PaymentTextParser.parse(pkg, text, source == "page") ?: return
+        val parsed = PaymentTextParser.parse(pkg, text, source != "notification", ocr = source == "page_ocr") ?: return
         val p = prefs(c)
         val items = JSONArray(p.getString("items", "[]"))
         val seen = JSONObject(p.getString("seen", "{}") ?: "{}")

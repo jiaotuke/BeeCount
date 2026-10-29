@@ -7,7 +7,16 @@ object PaymentTextParser {
     val packages = setOf("com.tencent.mm", "com.eg.android.AlipayGphone")
     data class Payment(val amount: String?, val merchant: String?, val orderId: String?, val kind: String = "expense")
     private val currency = Regex("(?:[¥￥]\\s*([0-9]+(?:\\.[0-9]{1,2})?)(?![0-9.])|(?<![0-9.])([0-9]+(?:\\.[0-9]{1,2})?)\\s*元)")
-    fun parse(packageName: String, text: String, page: Boolean): Payment? {
+    fun parse(packageName: String, text: String, page: Boolean, ocr: Boolean = false): Payment? {
+        if (text.length > 12000) return null
+        // OCR-only correction of the received-state label. Never substitute amount digits.
+        val normalized = if (ocr) text
+            .replace(Regex("(?<=\\p{IsHan})\\s+(?=\\p{IsHan})"), "")
+            .replace(Regex("([你您])[己巳]收款")) { "${it.groupValues[1]}已收款" }
+            else text
+        return parseText(packageName, normalized, page)
+    }
+    private fun parseText(packageName: String, text: String, page: Boolean): Payment? {
         if (packageName !in packages || text.length > 12000) return null
         // Refunds and balance movements are not ordinary income. A QR request is not a receipt.
         if (Regex("退款|退回|还款|充值|提现|余额转入|内部转账|支付失败|付款失败|收款失败|交易失败|交易关闭|已取消|已撤销|未到账|待收款|等待收款|待支付|待付款|等待付款|等待对方付款|验证码|动态码").containsMatchIn(text)) return null

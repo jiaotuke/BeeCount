@@ -213,6 +213,8 @@ flutter {
 }
 
 dependencies {
+    // Bundled Chinese OCR: works offline without Google Play model downloads.
+    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
     // 与 Flutter integration_test 传递依赖的 AndroidX Test 版本保持一致。
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'

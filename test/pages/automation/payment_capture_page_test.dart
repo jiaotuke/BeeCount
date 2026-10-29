@@ -30,23 +30,44 @@ void main() {
   final calls = <String>[];
   var fail = false;
   String? kind;
+  var pageEnabled = false;
+  var ocrSupported = true;
+  var ocrEnabled = false;
+  var fixtureSource = 'notification';
+  final enabledRequests = <Map<String, dynamic>>[];
   setUp(() {
     calls.clear();
     fail = false;
     kind = null;
+    pageEnabled = false;
+    ocrSupported = true;
+    ocrEnabled = false;
+    fixtureSource = 'notification';
+    enabledRequests.clear();
     SharedPreferences.setMockInitialValues({});
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       calls.add(call.method);
       if (fail) throw PlatformException(code: 'unavailable');
       if (call.method == 'status')
-        return {'notification': false, 'page': false};
+        return {
+          'notification': false,
+          'page': pageEnabled,
+          'pageGranted': true,
+          'ocrSupported': ocrSupported,
+          'ocr': ocrEnabled
+        };
+      if (call.method == 'setEnabled') {
+        final request = Map<String, dynamic>.from(call.arguments as Map);
+        enabledRequests.add(request);
+        if (request['source'] == 'ocr') ocrEnabled = request['enabled'] == true;
+      }
       if (call.method == 'list')
         return jsonEncode([
           {
             'id': 'fixture',
             'package': 'com.tencent.mm',
-            'source': 'notification',
+            'source': fixtureSource,
             'time': 1700000000000,
             'amount': null,
             'merchant': null,
@@ -93,6 +114,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('读取失败'), findsNothing);
   });
+  testWidgets('OCR is off and disabled until page reading is enabled',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: PaymentCapturePage()));
+    await tester.pumpAndSettle();
+    final ocr = tester.widget<Switch>(find.byType(Switch).last);
+    expect(ocr.value, isFalse);
+    expect(ocr.onChanged, isNull);
+    expect(enabledRequests, isEmpty);
+  });
+  testWidgets('unsupported Android cannot enable screenshot fallback',
+      (tester) async {
+    pageEnabled = true;
+    ocrSupported = false;
+    await tester.pumpWidget(const MaterialApp(home: PaymentCapturePage()));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Switch>(find.byType(Switch).last).onChanged, isNull);
+  });
+  for (final accept in [false, true]) {
+    testWidgets(
+        accept
+            ? 'OCR consent enables only OCR without opening unrelated settings'
+            : 'canceling screenshot consent keeps OCR off', (tester) async {
+      pageEnabled = true;
+      await tester.pumpWidget(const MaterialApp(home: PaymentCapturePage()));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('本地截图文字识别兜底'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Switch).last);
+      await tester.pumpAndSettle();
+      expect(find.text('开启本地截图文字识别？'), findsOneWidget);
+      await tester.tap(find.text(accept ? '同意并继续' : '取消'));
+      await tester.pumpAndSettle();
+      expect(
+          enabledRequests,
+          accept
+              ? [
+                  {'source': 'ocr', 'enabled': true}
+                ]
+              : isEmpty);
+      expect(ocrEnabled, accept);
+      expect(calls.contains('notificationSettings'), isFalse);
+      expect(calls.contains('accessibilitySettings'), isFalse);
+    });
+  }
   for (final incoming in [true, false]) {
     testWidgets(
         incoming
@@ -100,6 +165,7 @@ void main() {
             : 'legacy candidates without kind still open expense review',
         (tester) async {
       kind = incoming ? 'income' : null;
+      fixtureSource = incoming ? 'page_ocr' : 'notification';
       final repo = _CategoryRepository();
       await tester.pumpWidget(ProviderScope(
         overrides: [repositoryProvider.overrideWithValue(repo)],

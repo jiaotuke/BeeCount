@@ -64,10 +64,12 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
         final accepted = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-                  title: const Text('允许识别支付信息？'),
+                  title: Text(source == 'ocr' ? '开启本地截图文字识别？' : '允许识别支付信息？'),
                   content: Text(source == 'notification'
                       ? '系统通知访问权限可能接触其他通知。本功能仅处理微信、支付宝的付款与收款文字，在本机生成待确认账目，不上传通知；聊天、验证码不用于记账。开启后还需在系统设置中授权。'
-                      : '无障碍权限用于读取微信、支付宝付款成功和收款到账页面的文字。不点击、不付款、不截取其他应用页面，信息仅保存在本机。可随时关闭。开启后还需在系统设置中授权。'),
+                      : source == 'ocr'
+                          ? '当页面文字不可读时，截取指定收付款详情页并在手机本地识别。当前仅适配微信转账收款详情，不截取聊天、密码或其他应用页面。截图只在内存处理，不上传、不存入相册；识别文字作为待确认记录保存在本机。使用内置 ML Kit OCR，SDK 可能发送性能和使用统计，不发送识别图片或文字。系统禁止截图时停止。此开关默认关闭，可随时关闭。'
+                          : '无障碍权限用于读取微信、支付宝付款成功和收款到账页面的文字。不点击、不付款、不截取其他应用页面。截图识别需另行开启；信息仅保存在本机。可随时关闭。开启后还需在系统设置中授权。'),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
@@ -82,6 +84,7 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
       await _channel.invokeMethod<void>(
           'setEnabled', {'source': source, 'enabled': value});
       if (value &&
+          source != 'ocr' &&
           _status[source == 'page' ? 'pageGranted' : 'notificationGranted'] !=
               true) {
         await _channel.invokeMethod<void>(source == 'page'
@@ -159,7 +162,7 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
         ]),
         body: ListView(padding: const EdgeInsets.all(16), children: [
           const Text(
-              '微信 / 支付宝付款、收款到账后自动捕获，确认分类、账户和金额后记为支出或收入。无需截图，不依赖 AI。仅处理人民币；退款、充值、提现和未确认的转账暂不处理。'),
+              '微信 / 支付宝付款、收款到账后自动捕获，确认分类、账户和金额后记为支出或收入。默认读取通知和页面文字，可另行开启本地截图识别，不调用云端 AI。仅处理人民币；退款、充值、提现和未确认的转账暂不处理。'),
           SwitchListTile(
               title: const Text('监听付款与收款通知'),
               subtitle: Text(_status['notificationGranted'] == true
@@ -181,6 +184,26 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
               onPressed: () =>
                   _channel.invokeMethod<void>('accessibilitySettings'),
               child: const Text('打开无障碍设置')),
+          SwitchListTile(
+              title: const Text('本地截图文字识别兜底'),
+              subtitle: Text(_status['ocrSupported'] != true
+                  ? '需要 Android 11 或更新版本'
+                  : _status['page'] != true
+                      ? '请先开启上面的页面识别'
+                      : '仅适配微信转账收款详情；不上传、不保存截图'),
+              value: _status['ocr'] == true,
+              onChanged: _busy ||
+                      _status['ocrSupported'] != true ||
+                      _status['page'] != true
+                  ? null
+                  : (v) => _enable('ocr', v)),
+          if (_status['pageDiagnostic']?.toString().contains('chars=0') == true)
+            const Text('页面没有提供可读取文字；可按需开启本地截图识别，或使用通知识别。'),
+          if (_status['pageDiagnostic']
+                  ?.toString()
+                  .startsWith('ocr_screenshot_unavailable:') ==
+              true)
+            const Text('系统暂不允许截取此页面，请使用通知识别或手动录入。'),
           const Text(
               '关闭上面的开关即停止处理；也可在系统设置撤销权限。没有支付通知、页面文字不可读或系统停止服务时可能漏记。请定期用原始账单核对。'),
           if (_error != null)
@@ -211,7 +234,7 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
                                 : '¥${item['amount']}',
                             style: Theme.of(context).textTheme.titleLarge),
                         Text(
-                            '${item['package'] == 'com.tencent.mm' ? '微信' : '支付宝'} · ${item['source'] == 'page' ? '支付页面' : '通知'} · ${DateTime.fromMillisecondsSinceEpoch(item['time'] as int).toLocal()}'),
+                            '${item['package'] == 'com.tencent.mm' ? '微信' : '支付宝'} · ${item['source'] == 'page_ocr' ? '本地截图识别' : item['source'] == 'page' ? '支付页面' : '通知'} · ${DateTime.fromMillisecondsSinceEpoch(item['time'] as int).toLocal()}'),
                         if (item['possibleDuplicate'] == true)
                           const Text('可能与另一条记录重复，请核对后只保存一次。'),
                         ExpansionTile(
