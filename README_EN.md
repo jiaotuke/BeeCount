@@ -16,7 +16,8 @@ Only source code is published here. No APK or app-store distribution is provided
 | Payment notification listener | Reads authorized WeChat and Alipay payment and receipt notifications to create candidate expenses and income. |
 | Incoming payment detection | Recognizes explicit receipt-success or credited-payment text, including transfers explicitly marked as received by you. Pending transfers, QR requests, and generic balance alerts are not inferred as income. |
 | Success-page reader | Uses Android accessibility to read visible text on supported outgoing-payment and receipt-success pages. It does not require a manual screenshot, click buttons, or initiate payments. |
-| Optional local screenshot OCR | Off by default, with separate consent. Android 11+ only; initially restricted to the WeChat received-transfer detail activity. Bundled Chinese OCR processes the approved window in memory without uploading recognition inputs/outputs or saving screenshots. |
+| Optional local screenshot OCR | Off by default, with separate consent. Android 11+ only; restricted to supported WeChat received-transfer and claimed red-packet detail activities. Bundled Chinese OCR processes the approved window in memory without uploading recognition inputs/outputs or saving screenshots. |
+| WeChat red-packet income | Requires the credited-to-balance marker on a claimed-packet detail page. Spatial OCR selects the personal amount above that marker and excludes lower totals/participant amounts. Appears on the home screen as pending red-packet income. |
 | Local review inbox | Native services persist candidates with their source, time, original text, amount, and merchant. |
 | Ambiguous amount handling | Missing or multiple amounts remain unresolved until the user checks the actual paid amount. |
 | Duplicate handling | Separates income and expense identities before deduplicating order identifiers or notification events. Flags same-app, same-amount, same-direction pending records within a short time window. |
@@ -42,7 +43,8 @@ Disable either in-app switch to stop its processing, or revoke the corresponding
 ## Limitations
 
 - This version provides **automatic capture followed by user confirmation**, not unattended transaction posting.
-- Screenshot fallback is restricted to the explicitly supported WeChat transfer-detail activity. Chats, password pages, QR requests, generic WebViews, Alipay, and other payment pages are not enabled for screenshot OCR. Secure-window capture errors stop the attempt.
+- Screenshot fallback is restricted to supported WeChat transfer and claimed red-packet detail activities. Chats, passwords, unopened packets, QR requests, generic WebViews, Alipay, and other payment pages are excluded. Secure-window capture errors stop the attempt.
+- Without a readable platform packet ID, only matching captures from the same window are deduplicated. Similar packets after reopening are flagged for review rather than silently discarding a potentially genuine second receipt.
 - Parsing targets CNY expenses and explicit receipts from WeChat and Alipay. Refunds, top-ups, withdrawals, repayments, unconfirmed transfers, and generic transfer alerts are skipped. An explicitly received personal transfer still needs review: ignore transfers between your own accounts.
 - Missing or hidden notifications, inaccessible page text, and Android background restrictions may cause missed captures.
 - Without an order identifier, cross-source records cannot always be matched reliably. Equal amounts may represent separate purchases.
@@ -78,11 +80,13 @@ On Windows, use an ASCII build path to avoid native shader compiler path issues.
 
 ## Verification status
 
-Affected-page static analysis, income/expense parser and screenshot-scope tests, and fourteen widget tests passed, including the home preview, refresh, hidden amounts, screenshot consent, income categories, and legacy candidates. Full Android builds also compile the ML Kit screenshot service.
+Affected-page static analysis, payment/red-packet parser and screenshot-scope tests, and sixteen widget tests passed, including personal-amount selection, red-packet home labels and income review, refresh, hidden amounts, consent, and legacy candidates. Full Android builds also compile the ML Kit screenshot service.
 
 USB inspection on Honor MTN-AN80 confirmed installation, permissions, and bound services. WeChat 8.0.79 exposed only one empty node on the received-transfer page, motivating the opt-in OCR fallback. See the [implementation and validation notes](https://github.com/jiaotuke/BeeCount/blob/payment-auto-capture/docs/payment-capture-prototype.md) for the actual device results and remaining limitations.
 
 Version 0.2.2 successfully captured one real received WeChat transfer as pending income with the correct displayed amount. It did not post the transaction automatically. Other payment pages, Alipay screenshot OCR, real notification triggers, and long-term background behavior remain unverified by this test.
+
+Version 0.3.1 also captured a real claimed red packet on this device, correctly selecting the personal amount as pending red-packet income. Group-packet layouts have synthetic regression coverage only; real-device group-packet compatibility is not claimed.
 
 ## Attribution and license
 
