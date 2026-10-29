@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import '../automation/payment_capture_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../widgets/ui/ui.dart';
@@ -7,7 +9,6 @@ import '../../styles/tokens.dart';
 import '../transaction/recurring_transaction_page.dart';
 import '../settings/reminder_settings_page.dart';
 import '../../l10n/app_localizations.dart';
-import '../../utils/ui_scale_extensions.dart';
 
 /// 自动化功能二级页面
 class AutomationPage extends ConsumerWidget {
@@ -32,6 +33,17 @@ class AutomationPage extends ConsumerWidget {
                   margin: EdgeInsets.zero,
                   child: Column(
                     children: [
+                      if (Platform.isAndroid) ...[
+                        AppListTile(
+                          leading: Icons.payments_outlined,
+                          title: '支付自动识别（试验版）',
+                          subtitle: '微信 / 支付宝通知与支付页面，自动捕获后确认入账',
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => const PaymentCapturePage(),
+                          )),
+                        ),
+                        BeeTokens.cardDivider(context),
+                      ],
                       // 周期记账
                       AppListTile(
                         leading: Icons.repeat,

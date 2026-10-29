@@ -1,11 +1,16 @@
 pluginManagement {
     def flutterSdkPath = {
         def properties = new Properties()
-        file("local.properties").withInputStream { properties.load(it) }
+        // Flutter writes local.properties as UTF-8; the workspace can have a Chinese name.
+        file("local.properties").withReader("UTF-8") { properties.load(it) }
+        // The older Flutter plugin loader uses Properties.load(InputStream), which
+        // assumes Latin-1. Unicode escapes work for both loader implementations.
+        file("local.properties").withOutputStream { properties.store(it, null) }
         def flutterSdkPath = properties.getProperty("flutter.sdk")
         assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
         return flutterSdkPath
     }()
+    settings.ext.flutterSdkPath = flutterSdkPath
 
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 

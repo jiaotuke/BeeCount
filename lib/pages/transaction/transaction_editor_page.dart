@@ -22,6 +22,9 @@ import '../../services/data/tx_author_service.dart';
 /// 支持创建/编辑收入、支出和转账记录
 class TransactionEditorPage extends ConsumerStatefulWidget {
   final bool isCopy;
+  /// Called immediately after a new transaction is persisted (payment inbox acknowledgement).
+  final Future<void> Function(int)? onTransactionCreated;
+  final String? creationSyncId;
   final String initialKind; // 'expense', 'income', or 'transfer'
   // quickAdd: 点击分类后在当前弹窗上叠加金额输入
   final bool quickAdd;
@@ -42,6 +45,8 @@ class TransactionEditorPage extends ConsumerStatefulWidget {
   const TransactionEditorPage({
     super.key,
     this.isCopy = false,
+    this.onTransactionCreated,
+    this.creationSyncId,
     required this.initialKind,
     this.quickAdd = false,
     this.initialCategoryId,
@@ -99,7 +104,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 3, vsync: this);
+    _tab = TabController(length: widget.creationSyncId == null ? 3 : 1, vsync: this);
     // 设置初始tab: 0=支出, 1=收入, 2=转账
     if (widget.initialKind == 'income') {
       _tab.index = 1;
@@ -166,16 +171,18 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
                               insets: const EdgeInsets.symmetric(horizontal: 0),
                             ),
                             tabs: [
-                              Tab(text: AppLocalizations.of(context)!.categoryExpense),
-                              Tab(text: AppLocalizations.of(context)!.categoryIncome),
-                              Tab(text: AppLocalizations.of(context)!.transferTitle),
+                              Tab(text: AppLocalizations.of(context).categoryExpense),
+                              if (widget.creationSyncId == null) ...[
+                              Tab(text: AppLocalizations.of(context).categoryIncome),
+                              Tab(text: AppLocalizations.of(context).transferTitle),
+                              ],
                             ],
                           ),
                         ),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text(AppLocalizations.of(context)!.commonCancel,
+                        child: Text(AppLocalizations.of(context).commonCancel,
                             style: TextStyle(color: BeeTokens.textPrimary(context))),
                       )
                     ],
@@ -193,6 +200,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
                   onCategorySelected: (c) => _onCategorySelected(context, c, 'expense'),
                   initialCategoryId: widget.initialCategoryId,
                 ),
+                if (widget.creationSyncId == null) ...[
                 CategorySelector(
                   kind: 'income',
                   onCategorySelected: (c) => _onCategorySelected(context, c, 'income'),
@@ -215,6 +223,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
                   initialCurrencyCode: widget.initialCurrencyCode,
                   initialNativeAmount: widget.initialNativeAmount,
                 ),
+                ],
               ],
             ),
           ),
@@ -268,6 +277,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
       initialAccountId = await _getDefaultAccountId(kind, ledgerId);
     }
 
+    if (!context.mounted) return;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -293,11 +303,22 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
         initialCurrencyCode: widget.initialCurrencyCode,
         initialNativeAmount: widget.initialNativeAmount,
         allowContinueAdding: widget.quickAdd &&
+            widget.creationSyncId == null &&
             !widget.isCopy &&
             widget.editingTransactionId == null &&
             kind != 'transfer',
         onSubmit: (res) async {
           final repo = ref.read(repositoryProvider);
+          // Recover a previously saved payment if the app stopped before inbox acknowledgement.
+          if (widget.editingTransactionId == null && widget.creationSyncId != null) {
+            final existing = await repo.getTransactionBySyncId(widget.creationSyncId!);
+            if (existing != null) {
+              await widget.onTransactionCreated?.call(existing.id);
+              if (ctx.mounted) Navigator.of(ctx).pop();
+              if (context.mounted) Navigator.of(context).pop();
+              return;
+            }
+          }
           final attachmentService = ref.read(attachmentServiceProvider);
           int transactionId;
           // §7 v25:Category 是来自 SharedLedger* 的 synthetic (id<0)时,
@@ -340,6 +361,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
             await TxAuthorService.markEdited(ref, transactionId);
           } else {
             transactionId = await repo.addTransaction(
+              syncId: widget.creationSyncId,
               ledgerId: ledgerId,
               type: kind,
               amount: res.amount,
@@ -354,6 +376,7 @@ class _TransactionEditorPageState extends ConsumerState<TransactionEditorPage>
               currencyCode: res.currencyCode,
               nativeAmount: res.nativeAmount,
             );
+            await widget.onTransactionCreated?.call(transactionId);
             // 共享账本:新建本地 tx 也回填创建人 + 编辑人(同一个 user)
             await TxAuthorService.markCreated(ref, transactionId);
           }

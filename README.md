@@ -1,5 +1,11 @@
 # 蜜蜂记账(BeeCount) &nbsp; [English](README_EN.md)
 
+> **个人适配版本：安卓支付自动捕获（试验版）**
+>
+> 基于 [TNT-Likely/BeeCount](https://github.com/TNT-Likely/BeeCount) 修改，新增微信 / 支付宝的通知监听、支付成功页面文字读取和本地待确认列表。当前是「自动捕获、确认入账」，不是无确认直接入账；金额不明确和疑似重复的记录需要核对。入口：**我的 → 自动化 → 支付自动识别**。
+>
+> [实现、构建和验证说明](docs/payment-capture-prototype.md)。已完成 ARM64 测试 APK 构建和签名检查；尚未完成真机支付捕获及后台存活验证。原作者、版权和许可信息保留，使用与分发请遵守 [LICENSE](LICENSE)。下方为上游项目说明，其中下载链接指向原作者版本。
+
 > 🧪 **[4.x 内测：下载 Android 安装包、查看注意事项与反馈问题](https://github.com/TNT-Likely/BeeCount/issues/580)**
 
 <div align="center">
