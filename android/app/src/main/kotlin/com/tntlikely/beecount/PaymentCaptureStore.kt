@@ -20,15 +20,25 @@ object PaymentCaptureStore {
     @Synchronized fun capture(c: Context, pkg: String, text: String, source: String, eventId: String, time: Long) {
         if (!enabled(c, source)) return
         val parsed = PaymentTextParser.parse(pkg, text, source != "notification", ocr = source == "page_ocr") ?: return
+        persist(c, pkg, text, source, eventId, time, parsed)
+    }
+    @Synchronized fun captureRedPacket(c: Context, receipt: WechatRedPacketParser.Receipt, windowId: Int, time: Long) {
+        if (!enabled(c, "page_ocr")) return
+        persist(c, "com.tencent.mm", receipt.evidence, "page_ocr", "redpacket:$windowId:${receipt.fingerprint}", time,
+            receipt.payment, receipt.fingerprint)
+    }
+    private fun persist(c: Context, pkg: String, text: String, source: String, eventId: String, time: Long,
+                        parsed: PaymentTextParser.Payment, fingerprint: String? = null) {
         val p = prefs(c)
         val items = JSONArray(p.getString("items", "[]"))
         val seen = JSONObject(p.getString("seen", "{}") ?: "{}")
+        val packetSeen = JSONObject(p.getString("redpacketSeen", "{}") ?: "{}")
         val legacyIdentity = hash(if (parsed.orderId != null) "$pkg:order:${parsed.orderId}" else "$pkg:$source:$eventId")
         val identity = hash(if (parsed.orderId != null) "$pkg:${parsed.kind}:order:${parsed.orderId}" else "$pkg:${parsed.kind}:$source:$eventId")
         if (seen.has(identity) || (parsed.kind == "expense" && seen.has(legacyIdentity))) return
         // Never silently discard old pending payments on capacity overflow.
         if (items.length() >= 500) { p.edit().putBoolean("full", true).apply(); return }
-        var duplicate = false
+        var duplicate = fingerprint != null && packetSeen.has(fingerprint)
         for (i in 0 until items.length()) {
             val item = items.getJSONObject(i)
             if (item.optString("package") == pkg && item.optString("kind", "expense") == parsed.kind && parsed.amount != null && item.optString("amount") == parsed.amount &&
@@ -36,15 +46,20 @@ object PaymentCaptureStore {
         }
         val item = JSONObject().put("id", UUID.randomUUID().toString()).put("package", pkg)
             .put("kind", parsed.kind)
+            .put("scene", parsed.scene)
             .put("source", source).put("time", time).put("text", text.take(12000))
             .put("amount", parsed.amount ?: JSONObject.NULL).put("merchant", parsed.merchant ?: JSONObject.NULL)
             .put("possibleDuplicate", duplicate)
         items.put(item)
         seen.put(identity, System.currentTimeMillis())
         val now = System.currentTimeMillis()
+        if (fingerprint != null) packetSeen.put(fingerprint, now)
+        packetSeen.keys().asSequence().toList().filter { now - packetSeen.getLong(it) > 7L * 86400000 }
+            .forEach { packetSeen.remove(it) }
         val keys = seen.keys().asSequence().toList()
         keys.filter { now - seen.getLong(it) > 7L * 86400000 }.forEach { seen.remove(it) }
-        check(p.edit().putString("items", items.toString()).putString("seen", seen.toString()).commit())
+        check(p.edit().putString("items", items.toString()).putString("seen", seen.toString())
+            .putString("redpacketSeen", packetSeen.toString()).commit())
     }
     @Synchronized fun list(c: Context) = JSONArray(prefs(c).getString("items", "[]"))
     @Synchronized fun remove(c: Context, id: String) {

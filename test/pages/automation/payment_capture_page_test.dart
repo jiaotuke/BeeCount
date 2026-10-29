@@ -30,6 +30,7 @@ void main() {
   final calls = <String>[];
   var fail = false;
   String? kind;
+  String? fixtureScene;
   var pageEnabled = false;
   var ocrSupported = true;
   var ocrEnabled = false;
@@ -39,6 +40,7 @@ void main() {
     calls.clear();
     fail = false;
     kind = null;
+    fixtureScene = null;
     pageEnabled = false;
     ocrSupported = true;
     ocrEnabled = false;
@@ -74,6 +76,7 @@ void main() {
             'possibleDuplicate': true,
             'text': '支付成功，金额缺失（合成测试）',
             if (kind != null) 'kind': kind,
+            if (fixtureScene != null) 'scene': fixtureScene,
           }
         ]);
       return null;
@@ -158,13 +161,17 @@ void main() {
       expect(calls.contains('accessibilitySettings'), isFalse);
     });
   }
-  for (final incoming in [true, false]) {
+  for (final fixture in ['income', 'expense', 'redpacket']) {
+    final incoming = fixture != 'expense';
     testWidgets(
-        incoming
-            ? 'receipt review opens a single income tab and cancellation keeps the candidate'
-            : 'legacy candidates without kind still open expense review',
+        fixture == 'redpacket'
+            ? 'red packet review preserves income kind and specific note'
+            : incoming
+                ? 'receipt review opens a single income tab and cancellation keeps the candidate'
+                : 'legacy candidates without kind still open expense review',
         (tester) async {
       kind = incoming ? 'income' : null;
+      fixtureScene = fixture == 'redpacket' ? 'wechat_redpacket' : null;
       fixtureSource = incoming ? 'page_ocr' : 'notification';
       final repo = _CategoryRepository();
       await tester.pumpWidget(ProviderScope(
@@ -178,7 +185,13 @@ void main() {
       ));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text('核对并记账'), 200);
-      expect(find.text(incoming ? '待确认收入 · 收款' : '待确认支出 · 付款'), findsOneWidget);
+      expect(
+          find.text(fixtureScene != null
+              ? '待确认收入 · 微信红包'
+              : incoming
+                  ? '待确认收入 · 收款'
+                  : '待确认支出 · 付款'),
+          findsOneWidget);
       await tester.ensureVisible(find.text('核对并记账'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('核对并记账'));
@@ -187,6 +200,7 @@ void main() {
           .widget<TransactionEditorPage>(find.byType(TransactionEditorPage));
       final expectedKind = incoming ? 'income' : 'expense';
       expect(editor.initialKind, expectedKind);
+      if (fixtureScene != null) expect(editor.initialNote, '微信红包（请核对本人领取金额）');
       expect(editor.creationSyncId, 'fixture');
       expect(editor.initialAmount, isNull);
       expect(

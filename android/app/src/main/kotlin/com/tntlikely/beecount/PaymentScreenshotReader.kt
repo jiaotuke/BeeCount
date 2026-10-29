@@ -15,12 +15,13 @@ class PaymentScreenshotReader(
     private val service: AccessibilityService,
     private val diagnose: (String) -> Unit
 ) {
+    data class Result(val text: String, val lines: List<WechatRedPacketParser.Line>)
     private var recognizer: TextRecognizer? = null
     private var inFlight = false
     private var closed = false
     private var lastAttempt = -10000L
 
-    fun read(windowId: Int, stillAllowed: () -> Boolean, onText: (String?) -> Unit): Boolean {
+    fun read(windowId: Int, stillAllowed: () -> Boolean, onText: (Result?) -> Unit): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || closed || inFlight || !stillAllowed()) return false
         val now = SystemClock.elapsedRealtime()
         if (now - lastAttempt < 2500) return false
@@ -51,7 +52,13 @@ class PaymentScreenshotReader(
                         .also { recognizer = it }
                     client.process(InputImage.fromBitmap(bitmap, 0))
                         .addOnSuccessListener { result ->
-                            if (!closed && stillAllowed()) onText(result.text.take(12000))
+                            if (!closed && stillAllowed()) {
+                                val lines = result.textBlocks.flatMap { it.lines }.take(500).mapNotNull { line ->
+                                    val box = line.boundingBox ?: return@mapNotNull null
+                                    WechatRedPacketParser.Line(line.text, box.left, box.top, box.right, box.bottom)
+                                }
+                                onText(Result(result.text.take(12000), lines))
+                            }
                         }
                         .addOnFailureListener {
                             diagnose("ocr_recognition_failed:${it.javaClass.simpleName}")

@@ -14,8 +14,10 @@ Future<void> reviewPaymentCapture(
       initialAmount: double.tryParse(item['amount']?.toString() ?? ''),
       initialDate: DateTime.fromMillisecondsSinceEpoch(item['time'] as int),
       initialCurrencyCode: 'CNY',
-      initialNote: item['merchant'] as String? ??
-          (item['kind'] == 'income' ? '收款识别（请核对付款方）' : '支付识别（请核对商户）'),
+      initialNote: item['scene'] == 'wechat_redpacket'
+          ? '微信红包（请核对本人领取金额）'
+          : item['merchant'] as String? ??
+              (item['kind'] == 'income' ? '收款识别（请核对付款方）' : '支付识别（请核对商户）'),
       onTransactionCreated: (_) async {
         try {
           await channel.invokeMethod<void>('remove', {'id': item['id']});

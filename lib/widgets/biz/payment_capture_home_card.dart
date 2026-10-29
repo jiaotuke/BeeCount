@@ -141,7 +141,7 @@ class _PaymentCaptureHomeCardState extends State<PaymentCaptureHomeCard>
                       : Icons.north_east,
                   size: 20),
               title: Text(
-                  '${item['kind'] == 'income' ? '收入' : '支出'} · ${item['package'] == 'com.tencent.mm' ? '微信' : '支付宝'}'),
+                  '${item['kind'] == 'income' ? '收入' : '支出'} · ${item['scene'] == 'wechat_redpacket' ? '微信红包' : item['package'] == 'com.tencent.mm' ? '微信' : '支付宝'}'),
               subtitle: item['possibleDuplicate'] == true
                   ? const Text('疑似重复，请核对')
                   : null,

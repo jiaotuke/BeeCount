@@ -5,7 +5,7 @@ import java.math.BigDecimal
 /** Conservative CNY extraction. Never infer success or an amount from unrelated numbers. */
 object PaymentTextParser {
     val packages = setOf("com.tencent.mm", "com.eg.android.AlipayGphone")
-    data class Payment(val amount: String?, val merchant: String?, val orderId: String?, val kind: String = "expense")
+    data class Payment(val amount: String?, val merchant: String?, val orderId: String?, val kind: String = "expense", val scene: String = "payment")
     private val currency = Regex("(?:[¥￥]\\s*([0-9]+(?:\\.[0-9]{1,2})?)(?![0-9.])|(?<![0-9.])([0-9]+(?:\\.[0-9]{1,2})?)\\s*元)")
     fun parse(packageName: String, text: String, page: Boolean, ocr: Boolean = false): Payment? {
         if (text.length > 12000) return null

@@ -61,6 +61,13 @@ void main() {
     expect(find.text('••••'), findsNWidgets(2));
     expect(find.text('¥12.34'), findsNothing);
   });
+  testWidgets('red packets show their income scene on the home screen',
+      (tester) async {
+    items.last['scene'] = 'wechat_redpacket';
+    await show(tester);
+    expect(find.text('收入 · 微信红包'), findsOneWidget);
+    expect(find.text('¥12.34'), findsOneWidget);
+  });
   testWidgets('foreground refresh reflects new native captures',
       (tester) async {
     await show(tester);

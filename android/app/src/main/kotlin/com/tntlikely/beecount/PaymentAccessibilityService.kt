@@ -36,7 +36,8 @@ class PaymentAccessibilityService : AccessibilityService() {
         if (pkg != lastPackage) receiptSignature = null
         lastPackage = pkg
         if (pkg !in PaymentTextParser.packages || !PaymentCaptureStore.enabled(this, "page")) return
-        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            event.className?.toString()?.startsWith("$pkg.") == true) {
             val activity = event.className?.toString()
             if (activity != paymentActivity || event.windowId != paymentWindowId) {
                 pageGeneration++
@@ -69,6 +70,10 @@ class PaymentAccessibilityService : AccessibilityService() {
         }
         visit(root, 0)
         val text = lines.joinToString("\n").take(12000)
+        if (PaymentOcrPolicy.isRedPacket(pkg, paymentActivity)) {
+            tryOcr(pkg, root.windowId)
+            return
+        }
         val parsed = PaymentTextParser.parse(pkg, text, true)
         diagnose("package=$pkg nodes=$visited chars=${text.length} result=${parsed?.kind ?: "unmatched"} amountKnown=${parsed?.amount != null}")
         if (parsed == null) {
@@ -94,9 +99,23 @@ class PaymentAccessibilityService : AccessibilityService() {
             val root = rootInActiveWindow ?: return false
             return root.packageName?.toString() == pkg && root.windowId == windowId
         }
-        if (screenshotReader.read(windowId, ::stillAllowed) { text ->
+        if (screenshotReader.read(windowId, ::stillAllowed) { result ->
             if (!stillAllowed()) return@read
+            val text = result?.text
             if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) debugLastOcrText = text
+            if (PaymentOcrPolicy.isRedPacket(pkg, paymentActivity)) {
+                val receipt = result?.let { WechatRedPacketParser.parse(pkg, paymentActivity, it.lines) }
+                if (text != null) diagnose("redpacket_ocr chars=${text.length} matched=${receipt != null} amountKnown=${receipt?.payment?.amount != null}")
+                if (receipt != null) {
+                    val signature = "$pkg:redpacket:${receipt.fingerprint}"
+                    if (receiptSignature != signature) {
+                        runCatching { PaymentCaptureStore.captureRedPacket(this, receipt, windowId, System.currentTimeMillis()) }
+                            .onSuccess { receiptSignature = signature }
+                            .onFailure { diagnose("capture_failed:${it.javaClass.simpleName}") }
+                    }
+                } else if (ocrAttempts < 3) scheduleScan(3000)
+                return@read
+            }
             val parsed = text?.let { PaymentTextParser.parse(pkg, it, true, ocr = true) }
             if (text != null) diagnose("ocr_chars=${text.length} result=${parsed?.kind ?: "unmatched"} amountKnown=${parsed?.amount != null}")
             if (parsed != null) capture(pkg, text!!, "page_ocr", parsed)

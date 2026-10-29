@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="payment_capture_name">支付自动识别（试验版）</string>
-    <string name="payment_capture_description">授权后读取微信、支付宝收付款页面文字。另行开启本地截图识别时，仅截取适配的微信转账收款详情页，在手机上识别；截图不上传、不保存，文字进入本地待确认列表。不点击按钮、不发起支付。可随时在自动化设置中关闭。</string>
+    <string name="payment_capture_description">授权后读取微信、支付宝收付款页面文字。另行开启本地截图识别时，仅截取适配的微信转账收款或红包领取详情页，在手机上识别本人金额；截图不上传、不保存，文字进入本地待确认列表。不点击按钮、不领取红包、不发起支付。可随时在自动化设置中关闭。</string>
     <!-- 通用资源 -->
     <string name="app_name">蜜蜂记账</string>
     <string name="app_name_test">蜜蜂记账测试版</string>

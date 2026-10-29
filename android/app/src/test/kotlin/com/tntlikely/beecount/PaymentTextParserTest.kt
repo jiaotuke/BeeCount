@@ -5,6 +5,41 @@ fun main() {
     val wechat = "com.tencent.mm"
     val alipay = "com.eg.android.AlipayGphone"
     val receiptActivity = "com.tencent.mm.plugin.remittance.ui.RemittanceDetailUI"
+    val packetActivity = "com.tencent.mm.plugin.luckymoney.ui.LuckyMoneyNewDetailUI"
+    check(PaymentOcrPolicy.allows(wechat, packetActivity))
+    check(!PaymentOcrPolicy.allows(wechat, "com.tencent.mm.plugin.luckymoney.ui.LuckyMoneyBeforeDetailUI"))
+    fun line(text: String, top: Int, bottom: Int = top + 25) = WechatRedPacketParser.Line(text, 100, top, 500, bottom)
+    val packet = listOf(line("23:01", 10), line("测试甲的红包", 200), line("合成祝福", 245),
+        line("12.34", 310, 400), line("元", 365), line("已存入零钱，可直接转账", 440),
+        line("共99.00元", 600), line("测试乙", 660), line("88.88元", 700))
+    val packetReceipt = WechatRedPacketParser.parse(wechat, packetActivity, packet)!!
+    check(packetReceipt.payment.amount == "12.34" && packetReceipt.payment.kind == "income")
+    check(packetReceipt.payment.scene == "wechat_redpacket")
+    check(!packetReceipt.evidence.contains("88.88") && !packetReceipt.evidence.contains("测试乙"))
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.drop(1))?.fingerprint == packetReceipt.fingerprint)
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet + line("77.77元", 800))?.fingerprint == packetReceipt.fingerprint)
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.reversed())?.payment?.amount == "12.34")
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.filterNot { it.text == "元" }.map {
+        if (it.text == "12.34") line("12.34元", 310, 400) else it
+    })?.fingerprint == packetReceipt.fingerprint)
+    check(WechatRedPacketParser.parse(wechat, receiptActivity, packet) == null)
+    check(WechatRedPacketParser.parse(alipay, packetActivity, packet) == null)
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.filterNot { it.text.contains("已存入") }) == null)
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.map { if (it.text.contains("已存入")) line("手慢了，红包派完了", 440) else it }) == null)
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.map { if (it.text.contains("已存入")) line("红包已过期", 440) else it }) == null)
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.map { if (it.text=="12.34") line("12.OO", 310, 400) else it })?.payment?.amount == null)
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet + line("7.89元", 270))?.payment?.amount == null)
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.map { if (it.text.contains("已存入")) line("己存人零钱,可直接转账", 440) else it })?.payment?.amount == "12.34")
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.map {
+        when {
+            it.text == "12.34" -> line("12.34.", 310, 400)
+            it.text.contains("已存入") -> line("已存入零线,可直接转账〉", 440)
+            else -> it
+        }
+    })?.payment?.amount == "12.34")
+    check(WechatRedPacketParser.parse(wechat, packetActivity, packet.map {
+        if (it.text == "12.34") line("12.345.", 310, 400) else it
+    })?.payment?.amount == null)
     check(PaymentOcrPolicy.allows(wechat, receiptActivity))
     check(!PaymentOcrPolicy.allows(alipay, receiptActivity))
     for (activity in listOf(null, "android.webkit.WebView", "com.tencent.mm.ui.LauncherUI", "com.tencent.mm.plugin.wallet.pay.ui.WalletPayUI", receiptActivity + "Fake")) {

@@ -69,7 +69,7 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
                   content: Text(source == 'notification'
                       ? '系统通知访问权限可能接触其他通知。本功能仅处理微信、支付宝的付款与收款文字，在本机生成待确认账目，不上传通知；聊天、验证码不用于记账。开启后还需在系统设置中授权。'
                       : source == 'ocr'
-                          ? '当页面文字不可读时，截取指定收付款详情页并在手机本地识别。当前仅适配微信转账收款详情，不截取聊天、密码或其他应用页面。截图只在内存处理，不上传、不存入相册；识别文字作为待确认记录保存在本机。使用内置 ML Kit OCR，SDK 可能发送性能和使用统计，不发送识别图片或文字。系统禁止截图时停止。此开关默认关闭，可随时关闭。'
+                          ? '当页面文字不可读时，截取已适配的微信转账收款或红包领取详情，在手机本地识别。红包需显示已存入零钱，只提取本人金额，不使用其他人的领取金额。不截取聊天、密码或其他应用页面。截图只在内存处理，不上传、不存入相册；识别文字作为待确认记录保存在本机。使用内置 ML Kit OCR，SDK 可能发送性能和使用统计，不发送识别图片或文字。系统禁止截图时停止。此开关默认关闭，可随时关闭。'
                           : '无障碍权限用于读取微信、支付宝付款成功和收款到账页面的文字。不点击、不付款、不截取其他应用页面。截图识别需另行开启；信息仅保存在本机。可随时关闭。开启后还需在系统设置中授权。'),
                   actions: [
                     TextButton(
@@ -180,7 +180,7 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
                     ? '需要 Android 11 或更新版本'
                     : _status['page'] != true
                         ? '请先开启上面的页面识别'
-                        : '仅适配微信转账收款详情；不上传、不保存截图'),
+                        : '已适配的微信转账 / 红包领取详情；不上传、不保存截图'),
                 value: _status['ocr'] == true,
                 onChanged: _busy ||
                         _status['ocrSupported'] != true ||
@@ -218,7 +218,9 @@ class _PaymentCapturePageState extends State<PaymentCapturePage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(item['kind'] == 'income'
-                            ? '待确认收入 · 收款'
+                            ? item['scene'] == 'wechat_redpacket'
+                                ? '待确认收入 · 微信红包'
+                                : '待确认收入 · 收款'
                             : '待确认支出 · 付款'),
                         Text(
                             item['amount'] == null
